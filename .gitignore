@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+# Heruntergeladene Daten und Zugangsdaten nie einchecken
+Schulcloud/
+*.part
+.sc-dl-index.json
+config.json
