@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -114,7 +115,8 @@ def test_config_roundtrip(tmp_path, monkeypatch):
     path = cfg.save()
     assert Config.load().token == "abc"
     assert json.loads(path.read_text())["base_url"] == "https://example.org"
-    assert oct(path.stat().st_mode & 0o777) == "0o600"
+    if os.name != "nt":  # Windows kennt keine POSIX-Rechte; %APPDATA% ist per ACL nur für den Benutzer
+        assert oct(path.stat().st_mode & 0o777) == "0o600"
 
 
 def test_token_expiry():
