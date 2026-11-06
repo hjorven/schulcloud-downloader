@@ -200,6 +200,18 @@ def cmd_download(args: argparse.Namespace) -> int:
     return 1 if result.failed else 0
 
 
+def cmd_start(_: argparse.Namespace) -> int:
+    from .interactive import run
+
+    return run()
+
+
+def cmd_web(args: argparse.Namespace) -> int:
+    from .web import serve
+
+    return serve(port=args.port, open_browser=not args.kein_browser)
+
+
 # ----------------------------------------------------------------------- main
 def add_filter_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--kurs", action="append", metavar="TEXT", help="Nur Kurse/Räume, deren Name TEXT enthält (mehrfach möglich)")
@@ -215,7 +227,15 @@ def add_filter_args(p: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sc-dl", description="Massendownload aus der Schul-Cloud")
     parser.add_argument("--version", action="version", version=f"sc-dl {__version__}")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
+
+    p = sub.add_parser("start", help="Geführt im Terminal: anmelden, Fundstellen anzeigen, auswählen, laden")
+    p.set_defaults(func=cmd_start)
+
+    p = sub.add_parser("web", help="Lokale Webseite im Browser öffnen (anmelden, auswählen, laden)")
+    p.add_argument("--port", type=int, default=8765, help="Port auf 127.0.0.1, Standard 8765")
+    p.add_argument("--kein-browser", action="store_true", help="Browser nicht automatisch öffnen")
+    p.set_defaults(func=cmd_web)
 
     p = sub.add_parser("login", help="Anmelden und Token speichern")
     p.add_argument("--url", help="Adresse der Schul-Cloud, Standard: https://brandenburg.cloud")
@@ -247,6 +267,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if not getattr(args, "func", None):
+        # Ohne Unterbefehl: geführter Modus im Terminal
+        args.func = cmd_start
     if getattr(args, "parallel", 1) > 8:
         args.parallel = 8
     try:

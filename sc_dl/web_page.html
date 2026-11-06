@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schul-Cloud Download</title>
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+  --accent: #1f6feb; --accent-text: #ffffff; --ok: #1a7f37; --err: #c62828; --hover: #eef2f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14171c; --card: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --line: #2e343e;
+          --accent: #4c8dff; --accent-text: #0b0d10; --ok: #4ac26b; --err: #ff6b6b; --hover: #252a33; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+       font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; margin: 0 0 12px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+input[type=text], input[type=email], input[type=password] {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--text); font: inherit; }
+button { font: inherit; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line);
+         background: var(--card); color: var(--text); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.msg { margin-top: 10px; font-size: 14px; }
+.msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+.log { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--muted); max-height: 180px;
+       overflow: auto; white-space: pre-wrap; margin-top: 10px; }
+.hidden { display: none !important; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.toolbar input[type=text] { flex: 1 1 220px; width: auto; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; user-select: none; }
+.chip.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.tree { border: 1px solid var(--line); border-radius: 8px; max-height: 60vh; overflow: auto; }
+details { border-bottom: 1px solid var(--line); }
+details:last-child { border-bottom: 0; }
+summary { list-style: none; display: flex; gap: 8px; align-items: center; padding: 8px 10px; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+summary:hover, .file:hover { background: var(--hover); }
+summary .caret { width: 12px; color: var(--muted); transition: transform .15s; }
+details[open] > summary .caret { transform: rotate(90deg); }
+.lvl2 > summary { padding-left: 30px; }
+.file { display: flex; gap: 8px; align-items: center; padding: 5px 10px 5px 52px; font-size: 14px; }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.sum { font-weight: 600; }
+progress { width: 100%; height: 12px; }
+@media (max-width: 560px) { .meta.date { display: none; } .file { padding-left: 36px; } .lvl2 > summary { padding-left: 20px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Schul-Cloud Download</h1>
+  <p class="sub">Läuft nur auf deinem Rechner. Deine Zugangsdaten gehen direkt an die Schul-Cloud und sonst nirgendwohin.</p>
+
+  <section class="card" id="step-login">
+    <h2>1. Anmelden</h2>
+    <div id="saved-box" class="hidden">
+      <div class="row" style="margin-top:0">
+        <button class="primary" id="btn-saved">Gespeicherte Anmeldung verwenden</button>
+        <span class="meta">oder unten neu anmelden</span>
+      </div>
+    </div>
+    <form id="login-form" autocomplete="on">
+      <label for="url">Adresse der Schul-Cloud</label>
+      <input type="text" id="url" value="https://brandenburg.cloud">
+      <label for="user">E-Mail</label>
+      <input type="email" id="user" autocomplete="username" required>
+      <label for="pw">Passwort</label>
+      <input type="password" id="pw" autocomplete="current-password" required>
+      <div class="row"><button class="primary" type="submit" id="btn-login">Anmelden und suchen</button></div>
+    </form>
+    <div class="msg" id="login-msg"></div>
+  </section>
+
+  <section class="card hidden" id="step-scan">
+    <h2>2. Suche läuft</h2>
+    <div id="scan-info">Kurse und Räume werden durchsucht ...</div>
+    <div class="log" id="scan-log"></div>
+  </section>
+
+  <section class="card hidden" id="step-select">
+    <h2>3. Auswählen</h2>
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Suchen (Kurs, Thema, Dateiname)">
+      <button id="btn-all">Alle</button>
+      <button id="btn-none">Keine</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tree" id="tree"></div>
+    <label for="out">Zielordner auf deinem Rechner</label>
+    <input type="text" id="out">
+    <div class="row">
+      <button class="primary" id="btn-download">Herunterladen</button>
+      <span class="sum" id="sum"></span>
+    </div>
+    <div class="msg" id="select-msg"></div>
+  </section>
+
+  <section class="card hidden" id="step-download">
+    <h2>4. Herunterladen</h2>
+    <progress id="bar" value="0" max="1"></progress>
+    <div class="msg" id="dl-info"></div>
+    <div class="log" id="dl-log"></div>
+    <div class="row hidden" id="dl-again"><button id="btn-back">Zurück zur Auswahl</button></div>
+  </section>
+</main>
+<script>
+"use strict";
+const KEY = "__SC_KEY__";
+const $ = (id) => document.getElementById(id);
+let items = [];
+const selected = new Set();
+const activeTypes = new Set();
+
+async function api(path, body) {
+  const opts = { headers: { "X-SC-Key": KEY } };
+  if (body !== undefined) {
+    opts.method = "POST";
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+  return data;
+}
+
+function show(id) {
+  for (const s of ["step-login", "step-scan", "step-select", "step-download"]) $(s).classList.toggle("hidden", s !== id);
+}
+function fmtSize(n) {
+  if (n == null) return "?";
+  const u = ["B", "KB", "MB", "GB"]; let i = 0; let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? v : v.toFixed(1)) + " " + u[i];
+}
+function fmtDate(s) { return s ? new Date(s).toLocaleDateString("de-DE") : ""; }
+function ext(name) { const m = /\.([^.]+)$/.exec(name); return m ? m[1].toLowerCase() : "(ohne)"; }
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function init() {
+  try {
+    const d = await api("/api/defaults");
+    if (d.url) $("url").value = d.url;
+    $("out").value = d.out;
+    $("saved-box").classList.toggle("hidden", !d.saved);
+  } catch (e) { $("login-msg").textContent = e.message; $("login-msg").className = "msg err"; }
+}
+
+async function doLogin(useSaved) {
+  const msg = $("login-msg");
+  msg.className = "msg"; msg.textContent = "Anmeldung läuft ...";
+  $("btn-login").disabled = true; $("btn-saved").disabled = true;
+  try {
+    const info = await api("/api/login", {
+      url: $("url").value, username: $("user").value, password: $("pw").value, useSaved,
+    });
+    $("pw").value = "";
+    msg.className = "msg ok"; msg.textContent = "Angemeldet als " + info.name + (info.school ? " (" + info.school + ")" : "");
+    await scan();
+  } catch (e) {
+    msg.className = "msg err"; msg.textContent = e.message;
+    show("step-login");
+  } finally {
+    $("btn-login").disabled = false; $("btn-saved").disabled = false;
+  }
+}
+
+async function scan() {
+  show("step-scan");
+  await api("/api/scan", {});
+  for (;;) {
+    await sleep(700);
+    const st = await api("/api/status");
+    $("scan-log").textContent = st.log.join("\n");
+    $("scan-log").scrollTop = 1e9;
+    $("scan-info").textContent = "Kurse und Räume werden durchsucht ... " + (st.log.length ? "" : "");
+    if (st.phase === "scanned") break;
+    if (st.phase === "error") { show("step-login"); $("login-msg").className = "msg err"; $("login-msg").textContent = st.error; return; }
+  }
+  items = await api("/api/items");
+  selected.clear();
+  items.forEach((it) => selected.add(it.id));
+  buildChips();
+  render();
+  show("step-select");
+}
+
+function buildChips() {
+  const counts = {};
+  items.forEach((it) => { const e = ext(it.name); counts[e] = (counts[e] || 0) + 1; });
+  const box = $("chips"); box.textContent = "";
+  activeTypes.clear();
+  Object.keys(counts).sort().forEach((e) => {
+    const c = document.createElement("span");
+    c.className = "chip"; c.textContent = e + " (" + counts[e] + ")";
+    c.onclick = () => { activeTypes.has(e) ? activeTypes.delete(e) : activeTypes.add(e); c.classList.toggle("on"); render(); };
+    box.appendChild(c);
+  });
+}
+
+function visibleItems() {
+  const q = $("search").value.trim().toLowerCase();
+  return items.filter((it) => {
+    if (activeTypes.size && !activeTypes.has(ext(it.name))) return false;
+    if (!q) return true;
+    return (it.container + " " + it.group + " " + it.path + " " + it.name).toLowerCase().includes(q);
+  });
+}
+
+function checkbox(ids) {
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  const n = ids.filter((id) => selected.has(id)).length;
+  cb.checked = n === ids.length && n > 0;
+  cb.indeterminate = n > 0 && n < ids.length;
+  cb.onclick = (ev) => {
+    ev.stopPropagation();
+    if (cb.checked) ids.forEach((id) => selected.add(id)); else ids.forEach((id) => selected.delete(id));
+    render();
+  };
+  return cb;
+}
+
+function summaryRow(el, label, ids, size) {
+  const s = document.createElement("summary");
+  const caret = document.createElement("span"); caret.className = "caret"; caret.textContent = "▸";
+  const name = document.createElement("span"); name.className = "name"; name.textContent = label;
+  const meta = document.createElement("span"); meta.className = "meta"; meta.textContent = (ids.length === 1 ? "1 Datei" : ids.length + " Dateien") + ", " + fmtSize(size);
+  s.append(caret, checkbox(ids), name, meta);
+  el.appendChild(s);
+}
+
+const openState = new Set();
+function render() {
+  const vis = visibleItems();
+  const tree = $("tree"); tree.textContent = "";
+  const byC = new Map();
+  vis.forEach((it) => {
+    if (!byC.has(it.container)) byC.set(it.container, new Map());
+    const g = byC.get(it.container);
+    if (!g.has(it.group)) g.set(it.group, []);
+    g.get(it.group).push(it);
+  });
+  const filtering = $("search").value.trim() !== "" || activeTypes.size > 0;
+  for (const [cName, groups] of byC) {
+    const all = [...groups.values()].flat();
+    const d = document.createElement("details");
+    d.open = filtering || openState.has(cName);
+    d.ontoggle = () => { d.open ? openState.add(cName) : openState.delete(cName); };
+    summaryRow(d, cName, all.map((i) => i.id), all.reduce((a, i) => a + (i.size || 0), 0));
+    for (const [gName, list] of groups) {
+      const gd = document.createElement("details"); gd.className = "lvl2";
+      const key = cName + "\u0000" + gName;
+      gd.open = filtering || openState.has(key);
+      gd.ontoggle = () => { gd.open ? openState.add(key) : openState.delete(key); };
+      summaryRow(gd, gName, list.map((i) => i.id), list.reduce((a, i) => a + (i.size || 0), 0));
+      for (const it of list) {
+        const row = document.createElement("label"); row.className = "file";
+        const name = document.createElement("span"); name.className = "name";
+        name.textContent = (it.path ? it.path + " / " : "") + it.name;
+        name.title = name.textContent;
+        const date = document.createElement("span"); date.className = "meta date"; date.textContent = fmtDate(it.updated);
+        const size = document.createElement("span"); size.className = "meta"; size.textContent = fmtSize(it.size);
+        row.append(checkbox([it.id]), name, date, size);
+        gd.appendChild(row);
+      }
+      d.appendChild(gd);
+    }
+    tree.appendChild(d);
+  }
+  if (!vis.length) { tree.textContent = "Keine Treffer."; }
+  const chosen = items.filter((it) => selected.has(it.id));
+  $("sum").textContent = chosen.length + " von " + items.length + " Dateien ausgewählt, " +
+    fmtSize(chosen.reduce((a, i) => a + (i.size || 0), 0));
+  $("btn-download").disabled = chosen.length === 0;
+}
+
+async function download() {
+  const ids = [...selected];
+  $("select-msg").textContent = "";
+  try {
+    await api("/api/download", { ids, out: $("out").value });
+  } catch (e) { $("select-msg").className = "msg err"; $("select-msg").textContent = e.message; return; }
+  show("step-download");
+  $("dl-again").classList.add("hidden");
+  $("dl-info").className = "msg"; $("dl-info").textContent = "Lade herunter ...";
+  for (;;) {
+    await sleep(700);
+    const st = await api("/api/status");
+    const p = st.progress;
+    $("bar").max = Math.max(p.total, 1); $("bar").value = p.done;
+    $("dl-log").textContent = st.log.join("\n"); $("dl-log").scrollTop = 1e9;
+    if (st.phase === "downloading") { $("dl-info").textContent = p.done + " von " + p.total + " Dateien"; continue; }
+    if (st.phase === "done") {
+      const r = st.result;
+      $("bar").value = $("bar").max;
+      $("dl-info").className = r.failed ? "msg err" : "msg ok";
+      $("dl-info").textContent = "Fertig: " + r.downloaded + " geladen (" + fmtSize(r.bytes) + "), " +
+        r.skipped + " schon vorhanden, " + r.failed + " fehlgeschlagen. Ordner: " + r.out;
+    } else if (st.phase === "error") {
+      $("dl-info").className = "msg err"; $("dl-info").textContent = st.error;
+    }
+    $("dl-again").classList.remove("hidden");
+    break;
+  }
+}
+
+$("login-form").addEventListener("submit", (e) => { e.preventDefault(); doLogin(false); });
+$("btn-saved").onclick = () => doLogin(true);
+$("search").addEventListener("input", render);
+$("btn-all").onclick = () => { visibleItems().forEach((i) => selected.add(i.id)); render(); };
+$("btn-none").onclick = () => { visibleItems().forEach((i) => selected.delete(i.id)); render(); };
+$("btn-download").onclick = download;
+$("btn-back").onclick = () => show("step-select");
+init();
+</script>
+</body>
+</html>

@@ -43,7 +43,27 @@ python -m pip install .
 
 Danach steht der Befehl `sc-dl` zur Verfügung, solange die `.venv` aktiv ist.
 
-## Anmelden
+## Am einfachsten: Webseite oder geführter Modus
+
+**Webseite** (öffnet sich im Browser, läuft nur auf deinem Rechner):
+
+```bash
+sc-dl web
+```
+
+Dort E-Mail und Passwort eingeben, das Tool sucht alle Kurse und Räume durch und zeigt alles als aufklappbare Liste mit Häkchen. Suchfeld und Dateityp-Knöpfe helfen beim Eingrenzen, dann Zielordner eintragen und "Herunterladen" klicken. Beenden mit `Strg+C` im Terminal.
+
+Die Seite ist nur unter `http://127.0.0.1` erreichbar, nicht aus dem Netz. Zugangsdaten gehen nur an die Schul-Cloud.
+
+**Geführter Modus im Terminal** (fragt alles nacheinander ab, Auswahl per Nummern wie `1,3-5`):
+
+```bash
+sc-dl start
+```
+
+`sc-dl` ohne weitere Angabe startet ebenfalls den geführten Modus.
+
+## Anmelden (für die Befehle unten)
 
 ```bash
 sc-dl login --url https://brandenburg.cloud --user deine.mail@schule.de

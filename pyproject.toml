@@ -19,5 +19,8 @@ sc-dl = "sc_dl.cli:main"
 [tool.setuptools]
 packages = ["sc_dl"]
 
+[tool.setuptools.package-data]
+sc_dl = ["*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

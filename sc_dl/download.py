@@ -101,6 +101,7 @@ def download_all(
     out_dir: Path,
     workers: int = 3,
     log: Callable[[str], None] = print,
+    progress: Callable[[int, int], None] | None = None,
 ) -> DownloadResult:
     index = Index(out_dir)
     result = DownloadResult()
@@ -113,6 +114,8 @@ def download_all(
 
     total = len(todo)
     lock = threading.Lock()
+    if progress:
+        progress(0, total)
 
     def fetch(item: FileItem, target: Path) -> int:
         if item.source == "legacy":
@@ -142,6 +145,8 @@ def download_all(
                     except (ApiError, OSError, Exception) as err:  # noqa: BLE001 - einzelne Fehler nicht abbrechen
                         result.failed += 1
                         log(f"[{done}/{total}] FEHLER {rel}: {err}")
+                    if progress:
+                        progress(done, total)
                     if done % 20 == 0:
                         index.save()
     finally:
