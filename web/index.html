@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Schul-Cloud Download</title>
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+  --accent: #1f6feb; --accent-text: #ffffff; --ok: #1a7f37; --err: #c62828; --hover: #eef2f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14171c; --card: #1d2128; --text: #e6e9ef; --muted: #9aa3b2; --line: #2e343e;
+          --accent: #4c8dff; --accent-text: #0b0d10; --ok: #4ac26b; --err: #ff6b6b; --hover: #252a33; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+       font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; margin: 0 0 12px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+input[type=text], input[type=email], input[type=password] {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--text); font: inherit; }
+button { font: inherit; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--line);
+         background: var(--card); color: var(--text); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.msg { margin-top: 10px; font-size: 14px; }
+.msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+.log { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--muted); max-height: 180px;
+       overflow: auto; white-space: pre-wrap; margin-top: 10px; }
+.hidden { display: none !important; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.toolbar input[type=text] { flex: 1 1 220px; width: auto; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; user-select: none; }
+.chip.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.tree { border: 1px solid var(--line); border-radius: 8px; max-height: 60vh; overflow: auto; }
+details { border-bottom: 1px solid var(--line); }
+details:last-child { border-bottom: 0; }
+summary { list-style: none; display: flex; gap: 8px; align-items: center; padding: 8px 10px; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+summary:hover, .file:hover { background: var(--hover); }
+summary .caret { width: 12px; color: var(--muted); transition: transform .15s; }
+details[open] > summary .caret { transform: rotate(90deg); }
+.lvl2 > summary { padding-left: 30px; }
+.file { display: flex; gap: 8px; align-items: center; padding: 5px 10px 5px 52px; font-size: 14px; }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.sum { font-weight: 600; }
+progress { width: 100%; height: 12px; }
+@media (max-width: 560px) { .meta.date { display: none; } .file { padding-left: 36px; } .lvl2 > summary { padding-left: 20px; } }
+a { color: var(--accent); }
+.note { font-size: 14px; color: var(--muted); }
+.warnbox { border: 1px solid var(--err); border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 14px; }
+.warnbox code { font: 13px ui-monospace, Menlo, Consolas, monospace; background: var(--bg); padding: 1px 4px; border-radius: 4px; }
+.radio { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
+.radio label { display: flex; gap: 6px; align-items: center; margin: 0; color: var(--text); font-size: 14px; }
+footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Schul-Cloud Download</h1>
+  <p class="sub">Lädt deine Materialien aus der Schul-Cloud gesammelt herunter. Diese Seite hat keinen eigenen Server: Anmeldung und Downloads laufen direkt zwischen deinem Browser und der Schul-Cloud. Dein Passwort wird nirgends gespeichert.</p>
+
+  <section class="card" id="step-login">
+    <h2>1. Anmelden</h2>
+    <form id="login-form" autocomplete="on">
+      <label for="url">Adresse der Schul-Cloud</label>
+      <input type="text" id="url" value="https://brandenburg.cloud">
+      <label for="user">E-Mail</label>
+      <input type="email" id="user" autocomplete="username" required>
+      <label for="pw">Passwort</label>
+      <input type="password" id="pw" autocomplete="current-password" required>
+      <label for="filter">Nur Kurse/Räume mit diesem Namen (optional, schneller)</label>
+      <input type="text" id="filter" placeholder="z.B. Mathe">
+      <div class="row"><button class="primary" type="submit" id="btn-login">Anmelden und suchen</button></div>
+    </form>
+    <div class="msg" id="login-msg"></div>
+    <div class="warnbox hidden" id="cors-box">
+      <strong>Die Schul-Cloud lässt diese Seite nicht zu.</strong>
+      Manche Schul-Cloud-Instanzen blockieren Anfragen von fremden Webseiten. Dann hilft die lokale Version, die genauso aussieht, aber auf deinem Rechner läuft:
+      <br><br><code>python -m pip install git+https://github.com/hjorven/schulcloud-downloader.git</code>
+      <br><code>sc-dl web</code>
+      <br><br>Anleitung: <a href="https://github.com/hjorven/schulcloud-downloader#readme">README</a>
+    </div>
+  </section>
+
+  <section class="card hidden" id="step-scan">
+    <h2>2. Suche läuft</h2>
+    <div id="scan-info">Kurse und Räume werden durchsucht ...</div>
+    <div class="log" id="scan-log"></div>
+  </section>
+
+  <section class="card hidden" id="step-select">
+    <h2>3. Auswählen</h2>
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Suchen (Kurs, Thema, Dateiname)">
+      <button id="btn-all">Alle</button>
+      <button id="btn-none">Keine</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tree" id="tree"></div>
+    <label>Speichern als</label>
+    <div class="radio">
+      <label id="opt-folder-label"><input type="radio" name="mode" value="folder" id="opt-folder"> Direkt in einen Ordner (Chrome, Edge)</label>
+      <label><input type="radio" name="mode" value="zip" id="opt-zip"> ZIP-Datei</label>
+    </div>
+    <p class="note" id="mode-note"></p>
+    <div class="row">
+      <button class="primary" id="btn-download">Herunterladen</button>
+      <span class="sum" id="sum"></span>
+    </div>
+    <div class="msg" id="select-msg"></div>
+  </section>
+
+  <section class="card hidden" id="step-download">
+    <h2>4. Herunterladen</h2>
+    <progress id="bar" value="0" max="1"></progress>
+    <div class="msg" id="dl-info"></div>
+    <div class="log" id="dl-log"></div>
+    <div class="row">
+      <button id="btn-cancel">Abbrechen</button>
+      <button id="btn-back" class="hidden">Zurück zur Auswahl</button>
+    </div>
+  </section>
+
+  <footer>Quellcode: <a href="https://github.com/hjorven/schulcloud-downloader">hjorven/schulcloud-downloader</a>. Inoffiziell, nicht von der Schul-Cloud.</footer>
+</main>
+<script src="app.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

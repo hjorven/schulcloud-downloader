@@ -4,6 +4,14 @@ Lädt die eigenen Materialien aus der Schul-Cloud (Schul-Cloud Brandenburg / dBi
 
 Das Tool liest nur. Es ändert, löscht oder lädt nichts in der Schul-Cloud hoch.
 
+## Direkt im Browser (ohne Installation)
+
+**https://hjorven.github.io/schulcloud-downloader/**
+
+Anmelden, alle Fundstellen ansehen, auswählen und herunterladen. In Chrome und Edge speichert die Seite direkt in einen Ordner deiner Wahl, in anderen Browsern als ZIP-Datei.
+
+Die Seite hat keinen eigenen Server. Anmeldung und Downloads laufen direkt zwischen deinem Browser und der Schul-Cloud, das Passwort wird nicht gespeichert. Falls die Schul-Cloud Anfragen von dieser Seite blockiert, zeigt die Seite einen Hinweis; dann die lokale Version unten nutzen (`sc-dl web`), die genauso aussieht.
+
 ## Was geladen wird
 
 | Bereich | Zielordner |
@@ -141,6 +149,8 @@ sc-dl download --out ~/Schulcloud --kurs "Physik" --dry-run
 - Läuft das Token während eines langen Downloads ab, einfach `sc-dl login` und den gleichen Befehl erneut starten. Fertige Dateien werden übersprungen.
 
 ## Entwicklung
+
+Die Browser-Version liegt in `web/` (reines HTML/JavaScript, keine Abhängigkeiten) und wird bei jedem Push auf `main` über `.github/workflows/pages.yml` veröffentlicht. Einmalig nötig: im Repo unter Settings, Pages, Source "GitHub Actions" auswählen.
 
 ```bash
 python -m pip install ".[test]"
